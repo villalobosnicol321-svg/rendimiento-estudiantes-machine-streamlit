@@ -42,6 +42,16 @@ ARCHIVOS = {
     "pca_km": "modelo_pca_kmeans.pkl",
 }
 
+# Agrupación de campos del formulario
+CAMPOS_ACADEMICO_NUM = ["Hours_Studied", "Attendance", "Previous_Scores", "Tutoring_Sessions"]
+CAMPOS_HABITOS_NUM   = ["Sleep_Hours", "Physical_Activity"]
+CAMPOS_HABITOS_CAT   = ["Extracurricular_Activities", "Motivation_Level"]
+CAMPOS_SOCIO_CAT     = [
+    "Parental_Involvement", "Access_to_Resources", "Internet_Access",
+    "Family_Income", "Teacher_Quality", "School_Type", "Peer_Influence",
+    "Learning_Disabilities", "Parental_Education_Level", "Distance_from_Home", "Gender",
+]
+ 
 st.set_page_config(
     page_title="Predictor de desempeño estudiantil",
     page_icon="🎯",
@@ -168,10 +178,28 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 📏 Calidad en prueba")
-    st.metric("F1 macro", f"{info_sel['f1_macro']:.3f}")
-    st.metric("Exactitud", f"{info_sel['accuracy']:.3f}")
-    st.metric("AUC-ROC", f"{info_sel['auc_roc']:.3f}")
+    st.metric("F1 macro", f"{info_sel['f1_macro']:.3f}",
+        help="Promedia el F1 de cada clase (Deficiente, Básico, Superior) dándoles igual peso. Más cercano a 1.0 es mejor. Es la métrica más útil cuando hay pocas observaciones de una clase.")
+    st.metric("Exactitud", f"{info_sel['accuracy']:.3f}",
+        help="Porcentaje de estudiantes clasificados correctamente. Ej: 0.939 = 93.9% correcto. Puede ser engañoso si una clase domina los datos.")
+    st.metric("AUC-ROC", f"{info_sel['auc_roc']:.3f}",
+        help="Mide qué tan bien el modelo separa los 3 niveles. 1.0 = separación perfecta · 0.5 = aleatorio. Valores sobre 0.85 son muy buenos.")
     st.caption("Evaluado sobre el 30 % de datos no usados en entrenamiento.")
+
+    with st.expander("📖 Glosario de métricas"):
+        st.markdown("""
+**F1 Macro**
+Balancea precisión y recall en los 3 niveles por igual. Es la mejor métrica cuando las clases están desbalanceadas (pocos estudiantes Superior). Va de 0 a 1.
+
+**Exactitud (Accuracy)**
+Cuántos estudiantes fueron clasificados correctamente del total. Un modelo que siempre prediga "Básico" lograría ~83% solo porque la mayoría son Básico — por eso no es suficiente mirar solo esta métrica.
+
+**AUC-ROC**
+Mide la capacidad del modelo de distinguir entre niveles. 0.9+ es excelente · 0.7–0.9 es bueno · menos de 0.7 necesita mejora.
+
+**Confianza**
+Probabilidad que el modelo le asigna a su propia predicción. Ej: 99.3% significa certeza muy alta. Confianza baja (< 60%) indica que el estudiante está en la frontera entre dos niveles.
+        """)
 
     with st.expander("📊 Comparar los 6 modelos"):
         filas = []
@@ -199,35 +227,74 @@ opciones = metadata["opciones_formulario"]
 
 with st.form("formulario_estudiante"):
     st.markdown("### ✏️ Datos del estudiante")
-
-    col1, col2 = st.columns(2)
     valores_en = {}
 
+    # ── Sección 1: Académico ──────────────────────────────────────────────────
+    st.markdown("#### 📐 Indicadores académicos")
+    col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**📐 Indicadores numéricos**")
-        for col in metadata["features_num"]:
-            cfg = opciones[col]
-            valores_en[col] = st.number_input(
-                etiqueta_variable(col),
-                min_value=int(cfg["min"]),
-                max_value=int(cfg["max"]),
-                value=int(cfg["default"]),
-            )
-
+        for col in CAMPOS_ACADEMICO_NUM:
+            if col in metadata["features_num"]:
+                cfg = opciones[col]
+                valores_en[col] = st.number_input(
+                    etiqueta_variable(col),
+                    min_value=int(cfg["min"]),
+                    max_value=int(cfg["max"]),
+                    value=int(cfg["default"]),
+                )
     with col2:
-        st.markdown("**🏷️ Perfil y contexto**")
-        for col in metadata["features_cat"]:
+        for col in CAMPOS_HABITOS_NUM:
+            if col in metadata["features_num"]:
+                cfg = opciones[col]
+                valores_en[col] = st.number_input(
+                    etiqueta_variable(col),
+                    min_value=int(cfg["min"]),
+                    max_value=int(cfg["max"]),
+                    value=int(cfg["default"]),
+                )
+        for col in CAMPOS_HABITOS_CAT:
+            if col in metadata["features_cat"]:
+                cfg = opciones[col]
+                opciones_es = [valor_a_es(v) for v in cfg["opciones"]]
+                mapa = {valor_a_es(v): v for v in cfg["opciones"]}
+                default_es = valor_a_es(cfg["default"])
+                idx = opciones_es.index(default_es) if default_es in opciones_es else 0
+                sel = st.selectbox(etiqueta_variable(col), opciones_es, index=idx)
+                valores_en[col] = mapa[sel]
+
+    st.markdown("---")
+
+    # ── Sección 2: Contexto socioeconómico ───────────────────────────────────
+    st.markdown("#### 🏠 Contexto socioeconómico")
+    col3, col4 = st.columns(2)
+    campos_socio = [c for c in CAMPOS_SOCIO_CAT if c in metadata["features_cat"]]
+    mitad = (len(campos_socio) + 1) // 2
+    with col3:
+        for col in campos_socio[:mitad]:
             cfg = opciones[col]
             opciones_es = [valor_a_es(v) for v in cfg["opciones"]]
-            mapa_display = {valor_a_es(v): v for v in cfg["opciones"]}
+            mapa = {valor_a_es(v): v for v in cfg["opciones"]}
             default_es = valor_a_es(cfg["default"])
             idx = opciones_es.index(default_es) if default_es in opciones_es else 0
-            seleccion_es = st.selectbox(
-                etiqueta_variable(col),
-                opciones_es,
-                index=idx,
-            )
-            valores_en[col] = mapa_display[seleccion_es]
+            sel = st.selectbox(etiqueta_variable(col), opciones_es, index=idx)
+            valores_en[col] = mapa[sel]
+    with col4:
+        for col in campos_socio[mitad:]:
+            cfg = opciones[col]
+            opciones_es = [valor_a_es(v) for v in cfg["opciones"]]
+            mapa = {valor_a_es(v): v for v in cfg["opciones"]}
+            default_es = valor_a_es(cfg["default"])
+            idx = opciones_es.index(default_es) if default_es in opciones_es else 0
+            sel = st.selectbox(etiqueta_variable(col), opciones_es, index=idx)
+            valores_en[col] = mapa[sel]
+
+    # Fallback para cualquier campo no capturado
+    for col in metadata["features_num"]:
+        if col not in valores_en:
+            valores_en[col] = int(opciones[col]["default"])
+    for col in metadata["features_cat"]:
+        if col not in valores_en:
+            valores_en[col] = opciones[col]["default"]
 
     enviado = st.form_submit_button(
         "✨ Calcular nivel de desempeño",
@@ -251,23 +318,8 @@ if enviado:
     prob_sel = probabilidades[clave_sel]
 
     st.divider()
-    st.markdown("### 🔀 Resultados por modelo")
 
-    cols = st.columns(3)
-    for i, (label, clave) in enumerate(OPCIONES_MODELO.items()):
-        with cols[i % 3]:
-            pred = predicciones[clave]
-            info = info_modelos[clave]
-            emoji_nivel = ["🔴", "🟠", "🟢"][pred]
-            st.markdown(f"**{label}**")
-            st.metric("Nivel", f"{emoji_nivel} {nombres_nivel[pred]}")
-            st.caption(
-                f"F1 macro: {info['f1_macro']:.3f} · Exactitud: {info['accuracy']:.3f}"
-            )
-            if clave == clave_sel:
-                st.caption("★ Modelo seleccionado en la barra lateral")
-
-    st.divider()
+    # ── Detalle primero ───────────────────────────────────────────────────────
     st.markdown(f"### 🔎 Detalle: {modelo_sel_label}")
 
     c1, c2 = st.columns([1, 2])
@@ -279,7 +331,8 @@ if enviado:
             help=f"Salida del modelo {modelo_sel_label}.",
         )
         confianza = float(prob_sel[pred_sel])
-        st.metric("Confianza del modelo", f"{confianza * 100:.1f} %")
+        st.metric("Confianza del modelo", f"{confianza * 100:.1f} %",
+            help="Probabilidad que el modelo le asigna a su propia predicción. Por encima de 80% es alta confianza.")
         alerta_nivel(pred_sel)
 
     with c2:
@@ -332,3 +385,23 @@ pero detecta con menos frecuencia los niveles extremos por el desbalance de clas
 Usa los otros modelos en esta app para **comparar** si el nivel cambia según el algoritmo.
             """
         )
+
+    st.divider()
+
+    # ── Resultados por modelo al final ────────────────────────────────────────
+    st.markdown("### 🔀 Resultados por modelo")
+
+    cols = st.columns(3)
+    for i, (label, clave) in enumerate(OPCIONES_MODELO.items()):
+        with cols[i % 3]:
+            pred = predicciones[clave]
+            info = info_modelos[clave]
+            emoji_nivel = ["🔴", "🟠", "🟢"][pred]
+            st.markdown(f"**{label}**")
+            st.metric("Nivel", f"{emoji_nivel} {nombres_nivel[pred]}")
+            st.caption(
+                f"F1 macro: {info['f1_macro']:.3f} · Exactitud: {info['accuracy']:.3f}"
+            )
+            if clave == clave_sel:
+                st.caption("★ Modelo seleccionado en la barra lateral")
+ 
