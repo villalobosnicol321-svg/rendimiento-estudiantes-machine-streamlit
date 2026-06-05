@@ -84,3 +84,12 @@ El formulario solicita las siguientes variables del estudiante:
 - El modelo seleccionado en la barra lateral ofrece detalle completo: nivel estimado, confianza (probabilidad) y gráfico de probabilidades por clase.
 - Los modelos basados en árboles (Random Forest, Gradient Boosting, Árbol de decisión) incluyen además un gráfico de **importancia de variables**.
 
+---
+
+## Equipo (proyecto CDP)
+
+- Nicol Camila Villalobos
+- Juan David Caballero
+- Camilo Andrés Sánchez
+- Juan Sebastián Diaz
+
