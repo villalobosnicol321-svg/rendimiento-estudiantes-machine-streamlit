@@ -20,12 +20,13 @@ La app utiliza **6 modelos de clasificación multiclase** entrenados sobre el da
 
 | Modelo | Clave interna | Archivo |
 |---|---|---|
-| Potenciación de gradiente ⭐ | `gb` | `modelo_gradient_boosting.pkl` |
-| Regresión logística | `rl` | `modelo_regresion_logistica.pkl` |
-| Regresión logística + SMOTE | `rl_smote` | `modelo_rl_smote.pkl` |
-| Bosque aleatorio | `rf` | `modelo_random_forest.pkl` |
-| Árbol de decisión | `tree` | `modelo_arbol.pkl` |
+| Gradient Boosting ⭐ | `gb` | `modelo_gradient_boosting.pkl` |
+| Logistic Regression | `rl` | `modelo_regresion_logistica.pkl` |
+| Logistic Regression + SMOTE | `rl_smote` | `modelo_rl_smote.pkl` |
+| Random Forest | `rf` | `modelo_random_forest.pkl` |
+| Decision Tree | `tree` | `modelo_arbol.pkl` |
 | PCA + K-Means | `pca_km` | `modelo_pca_kmeans.pkl` |
+
 
 > ⭐ El modelo recomendado es **Potenciación de gradiente**, por obtener el mejor F1-macro en datos de prueba.
 
@@ -56,63 +57,6 @@ rendimiento-estudiantes-streamlit/
 
 ---
 
-## ⚙️ Requisitos
-
-```txt
-streamlit
-pandas
-numpy
-scikit-learn==1.5.2
-plotly
-joblib
-imbalanced-learn==0.12.4
-scipy
-statsmodels
-```
-
-> **Python requerido: 3.11**  
-> El archivo `.python-version` en la raíz del repositorio ya especifica esta versión para Streamlit Cloud.
-
----
-
-## 🚀 Ejecución local
-
-### 1. Instalar dependencias
-
-```bash
-pip install scikit-learn==1.5.2 imbalanced-learn==0.12.4 streamlit pandas numpy plotly joblib scipy statsmodels
-```
-
-### 2. Entrenar los modelos (solo la primera vez o si cambia el dataset)
-
-```bash
-python entrenamiento.py
-```
-
-Esto genera todos los archivos `.pkl` en la carpeta `models/`.
-
-### 3. Lanzar la app
-
-```bash
-streamlit run app_ml.py
-```
-
----
-
-## 🔄 Re-entrenamiento
-
-Si necesitas actualizar los modelos (nuevo dataset o cambio de parámetros):
-
-```bash
-python entrenamiento.py
-git add models/
-git commit -m "Actualizar modelos entrenados"
-git push
-```
-
-> ⚠️ Los archivos `.pkl` deben generarse con **las mismas versiones** de `scikit-learn` e `imbalanced-learn` que usa Streamlit Cloud (`sklearn==1.5.2`, `imblearn==0.12.4`), de lo contrario la app fallará al cargarlos.
-
----
 
 ## 📊 Variables de entrada
 
@@ -140,8 +84,3 @@ El formulario solicita las siguientes variables del estudiante:
 - El modelo seleccionado en la barra lateral ofrece detalle completo: nivel estimado, confianza (probabilidad) y gráfico de probabilidades por clase.
 - Los modelos basados en árboles (Random Forest, Gradient Boosting, Árbol de decisión) incluyen además un gráfico de **importancia de variables**.
 
----
-
-## 🗂️ Proyecto
-
-Desarrollado como parte del **Proyecto CDP · Sección 13 — Clasificación Multiclase**.
